@@ -5,6 +5,7 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const cron = require('node-cron');
 const crypto = require('crypto');
 const path = require('path');
 require('dotenv').config();
@@ -32,6 +33,15 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // custom middlewares
+cron.schedule('0 0 * * *', async () => {
+	const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+	await User.deleteMany({
+		isVerified: false,
+		createdAt: { $lt: sevenDaysAgo }
+	});
+	console.log('Unverified users Deleted, with 7 days age');
+});
+
 const loginLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000, // 5 minutes
 	max: 10, // 10 will do it - I guess
