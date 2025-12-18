@@ -1,0 +1,31 @@
+{
+  "name": "emailed1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "author": "DevYay",
+  "license": "MIT",
+  "dependencies": {
+    "@bull-board/express": "^6.15.0",
+    "bcryptjs": "^3.0.3",
+    "bull": "^4.16.5",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-session": "^1.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.0.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.11",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "redis": "^5.10.0",
+    "validator": "^13.15.23"
+  }
+}
