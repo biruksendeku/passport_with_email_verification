@@ -287,6 +287,11 @@ app.get('/logout', (req, res, next) => {
 	}
 });
 
+// health check
+app.get('/health', (req, res) => {
+	res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 app.use((req, res, next) => {
 	try {
 		res.status(404).send('Page Not Found');
