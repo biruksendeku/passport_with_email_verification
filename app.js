@@ -83,7 +83,7 @@ const sendVerificationEmail = async (email, token) => {
 		subject: 'Verify Your Email',
 		html: `
 		<h1> Verify Your Email </h1>
-		<p> Clicl on the link below to verify your email: </p>
+		<p> Click on the link below to verify your email: </p>
 		<a href="${verificationUrl}"> Verify Here </a>
 		<p> This link will expire in 24 hours. </p>
 		`
