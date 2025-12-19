@@ -1,7 +1,7 @@
 {
   "name": "emailed1",
   "version": "1.0.0",
-  "description": "",
+  "description": "Express authentication app with Passport.js, email verification and cleanup cron job",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
