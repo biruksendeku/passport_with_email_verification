@@ -2,7 +2,6 @@ const express = require('express');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
-const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const crypto = require('crypto');
 const path = require('path');
@@ -11,6 +10,7 @@ require('dotenv').config();
 const User = require('./models/user');
 const { sendVerificationEmail } = require('./utils/mailer');
 const { isLogged } = require('./middlewares/auth');
+const { loginLimiter, apiLimiter } = require('./middlewares/rateLimiters');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -42,18 +42,8 @@ cron.schedule('0 0 * * *', async () => {
 	console.log('Unverified users Deleted, with 7 days age');
 });
 
-const loginLimiter = rateLimit({
-	windowMs: 5 * 60 * 1000, // 5 minutes
-	max: 10, // 10 will do it - I guess
-	message: 'Too many login attempts. Try again later.'
-});
 app.use('/login', loginLimiter);
 
-const apiLimiter = rateLimit({
-	windowMs: 2 * 60 * 1000, // 2 minutes
-	max: 10, // since these pages are 3 in total
-	message: 'Too many request. Try again later.'
-});
 app.use('/api', apiLimiter);
 
 // passport stuff
