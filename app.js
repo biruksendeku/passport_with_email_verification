@@ -1,16 +1,15 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const session = require('express-session');
-const cron = require('node-cron');
 const crypto = require('crypto');
 const path = require('path');
 require('dotenv').config();
 
 const User = require('./models/user');
+const { sendVerificationEmail } = require('./utils/mailer');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -65,30 +64,6 @@ const isLogged = (req, res, next) => {
 	} catch(err) {
 		next(err);
 	}
-};
-
-const transporter = nodemailer.createTransport({
-	service: 'gmail',
-	auth: {
-		user: process.env.EMAIL_USER,
-		pass: process.env.EMAIL_PASS
-	}
-});
-
-const sendVerificationEmail = async (email, token) => {
-	const verificationUrl = `${process.env.BASE_URL}/api/verify-email/${token}`;
-	const mailOptions = {
-		from: process.env.EMAIL_USER,
-		to: email,
-		subject: 'Verify Your Email',
-		html: `
-		<h1> Verify Your Email </h1>
-		<p> Click on the link below to verify your email: </p>
-		<a href="${verificationUrl}"> Verify Here </a>
-		<p> This link will expire in 24 hours. </p>
-		`
-	};
-	await transporter.sendMail(mailOptions);
 };
 
 // passport stuff
