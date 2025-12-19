@@ -11,6 +11,7 @@ const User = require('./models/user');
 const { sendVerificationEmail } = require('./utils/mailer');
 const { isLogged } = require('./middlewares/auth');
 const { loginLimiter, apiLimiter } = require('./middlewares/rateLimiters');
+require('./jobs/cleanup');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,16 +32,6 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
-
-// custom middlewares
-cron.schedule('0 0 * * *', async () => {
-	const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-	await User.deleteMany({
-		isVerified: false,
-		createdAt: { $lt: sevenDaysAgo }
-	});
-	console.log('Unverified users Deleted, with 7 days age');
-});
 
 app.use('/login', loginLimiter);
 
