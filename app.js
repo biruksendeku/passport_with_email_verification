@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const User = require('./models/user');
 const { sendVerificationEmail } = require('./utils/mailer');
+const { isLogged } = require('./middlewares/auth');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -54,17 +55,6 @@ const apiLimiter = rateLimit({
 	message: 'Too many request. Try again later.'
 });
 app.use('/api', apiLimiter);
-
-const isLogged = (req, res, next) => {
-	try {
-		if(!req.isAuthenticated()) {
-			return res.redirect('/login');
-		}
-		next();
-	} catch(err) {
-		next(err);
-	}
-};
 
 // passport stuff
 passport.use(new LocalStrategy(
