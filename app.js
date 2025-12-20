@@ -100,7 +100,9 @@ app.post('/signup', async (req, res, next) => {
 		if(password !== confirmPassword) {
 			return res.status(400).send('Bad Request - Password Mismatch');
 		}
-		const user = await User.findOne({ email });
+		// keep emails consistent so duplicates can't slip through by casing
+		const normalizedEmail = email.trim().toLowerCase();
+		const user = await User.findOne({ email: normalizedEmail });
 		if(user) {
 			return res.status(403).send('Email already exists, <a href="/login"> Login </a> to continue.');
 		}
@@ -112,7 +114,7 @@ app.post('/signup', async (req, res, next) => {
 
 		const newUser = new User({
 			name: name2,
-			email,
+			email: normalizedEmail,
 			password: hashedPassword,
 			verificationToken,
 			verificationExpires
@@ -121,7 +123,7 @@ app.post('/signup', async (req, res, next) => {
 		await newUser.save();
 		res.status(201).send('Registration Successful. Please check your email to verify your account.');
 
-		sendVerificationEmail(email, verificationToken).catch((err) => {
+		sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
 			console.log('Failed to send verification email: ', err.message);
 		});
 		
