@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const User = require('./models/user');
 const { sendVerificationEmail } = require('./utils/mailer');
+const { normalizeName } = require('./utils/helpers');
 const { isLogged } = require('./middlewares/auth');
 const { loginLimiter, apiLimiter } = require('./middlewares/rateLimiters');
 require('./jobs/cleanup');
@@ -105,7 +106,7 @@ app.post('/signup', async (req, res, next) => {
 		}
 		// save it
 		const hashedPassword = await bcrypt.hash(password, 10);
-		const name2 = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+		const name2 = normalizeName(name);
 		const verificationToken = crypto.randomBytes(32).toString('hex');
 		const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 1day plus
 
