@@ -26,6 +26,12 @@ app.set('view cache', false);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(publicFolder));
+
+// simple request logger
+app.use((req, res, next) => {
+	console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+	next();
+});
 app.use(session({
 	secret: process.env.SESSION_SECRET_KEY,
 	resave: false,
