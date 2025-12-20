@@ -29,7 +29,13 @@ app.use(express.static(publicFolder));
 app.use(session({
 	secret: process.env.SESSION_SECRET_KEY,
 	resave: false,
-	saveUninitialized: false
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: process.env.NODE_ENV === 'production',
+		maxAge: 24 * 60 * 60 * 1000 // 1 day
+	}
 }));
 app.use(passport.initialize());
 app.use(passport.session());
