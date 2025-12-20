@@ -45,12 +45,3 @@ const userSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('user', userSchema);
-
-/*
-const loadUsers = async () => {
-	const users = await User.find({});
-	console.log(users);
-};
-
-//module.exports = User
-*/
