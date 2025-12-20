@@ -100,6 +100,9 @@ app.post('/signup', async (req, res, next) => {
 		if(password !== confirmPassword) {
 			return res.status(400).send('Bad Request - Password Mismatch');
 		}
+		if(password.length < 8) {
+			return res.status(400).send('Bad Request - Password must be at least 8 characters long');
+		}
 		// keep emails consistent so duplicates can't slip through by casing
 		const normalizedEmail = email.trim().toLowerCase();
 		const user = await User.findOne({ email: normalizedEmail });
