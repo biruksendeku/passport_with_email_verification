@@ -258,7 +258,7 @@ app.get('/health', (req, res) => {
 
 app.use((req, res, next) => {
 	try {
-		res.status(404).send('Page Not Found');
+		res.status(404).send('Page Not Found - <a href="/login"> Back to Login </a>');
 	} catch(err) {
 		next(err);
 	}
