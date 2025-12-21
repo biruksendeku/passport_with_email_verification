@@ -1,6 +1,6 @@
 {
   "name": "emailed1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Express authentication app with Passport.js, email verification and cleanup cron job",
   "main": "app.js",
   "scripts": {
@@ -10,6 +10,9 @@
   },
   "author": "DevYay",
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
