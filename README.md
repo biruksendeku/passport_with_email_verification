@@ -46,6 +46,20 @@ automatically after 7 days.
    npm run dev
    ```
 
+## Project Structure
+
+```
+app.js                        # express app, routes and passport config
+models/user.js                # mongoose user schema + DB connection
+middlewares/auth.js           # isLogged route guard
+middlewares/rateLimiters.js   # login and api rate limiters
+jobs/cleanup.js               # daily cron job (deletes stale unverified users)
+utils/mailer.js               # nodemailer transport + verification email
+utils/helpers.js              # small input normalization helpers
+views/                        # ejs templates
+public/                       # static assets
+```
+
 ## Routes
 
 | Method | Path                        | Description                          |
