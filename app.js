@@ -273,6 +273,18 @@ app.use((err, req, res, next) => {
 	res.json({ error: err.stack });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
 	console.log(`Server listening on port ${port}...`);
 });
+
+// graceful shutdown
+const shutdown = (signal) => {
+	console.log(`${signal} received. Shutting down...`);
+	server.close(() => {
+		console.log('Server closed.');
+		process.exit(0);
+	});
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
