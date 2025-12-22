@@ -87,7 +87,7 @@ passport.deserializeUser(async (id, done) => {
 		if(!user) {
 			return done(new Error('Invalid Credentials - Incorrect email or password'), null);
 		}
-		// there's user, deserualize it
+	// there's user, deserialize it
 		done(null, user);
 	} catch(err) {
 		done(err, null);
@@ -162,7 +162,7 @@ app.get('/api/verify-email/:token', async (req, res, next) => {
 		// update the user infos
 		user.verificationToken = undefined; // remove from db
 		user.verificationExpires = undefined;
-		user.isVerified = true; // re-write the default false
+		user.isVerified = true; // overwrite the default false
 		user.verifiedAt = Date.now(); // mark the Date of verification
 		await user.save();
 

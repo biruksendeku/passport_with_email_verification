@@ -1,5 +1,8 @@
 # Passport Authentication with Email Verification
 
+![Node](https://img.shields.io/badge/node-%3E%3D18-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 A Node.js authentication app built with Express, Passport.js (local strategy),
 MongoDB and Nodemailer. New users must verify their email address before their
 account is considered active, and unverified accounts are cleaned up
