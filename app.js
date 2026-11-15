@@ -1,16 +1,18 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
-const rateLimit = require('express-rate-limit');
 const session = require('express-session');
-const cron = require('node-cron');
 const crypto = require('crypto');
 const path = require('path');
 require('dotenv').config();
 
 const User = require('./models/user');
+const { sendVerificationEmail } = require('./utils/mailer');
+const { normalizeName } = require('./utils/helpers');
+const { isLogged } = require('./middlewares/auth');
+const { loginLimiter, apiLimiter } = require('./middlewares/rateLimiters');
+require('./jobs/cleanup');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,75 +23,32 @@ app.set('view engine', 'ejs');
 app.set('view cache', false);
 
 // built-in middlewares
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(publicFolder));
+
+// simple request logger
+app.use((req, res, next) => {
+	console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+	next();
+});
 app.use(session({
 	secret: process.env.SESSION_SECRET_KEY,
 	resave: false,
-	saveUninitialized: false
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		sameSite: 'lax',
+		secure: process.env.NODE_ENV === 'production',
+		maxAge: 24 * 60 * 60 * 1000 // 1 day
+	}
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// custom middlewares
-cron.schedule('0 0 * * *', async () => {
-	const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-	await User.deleteMany({
-		isVerified: false,
-		createdAt: { $lt: sevenDaysAgo }
-	});
-	console.log('Unverified users Deleted, with 7 days age');
-});
-
-const loginLimiter = rateLimit({
-	windowMs: 5 * 60 * 1000, // 5 minutes
-	max: 10, // 10 will do it - I guess
-	message: 'Too many login attempts. Try again later.'
-});
 app.use('/login', loginLimiter);
 
-const apiLimiter = rateLimit({
-	windowMs: 2 * 60 * 1000, // 2 minutes
-	max: 10, // since these pages are 3 in total
-	message: 'Too many request. Try again later.'
-});
 app.use('/api', apiLimiter);
-
-const isLogged = (req, res, next) => {
-	try {
-		if(!req.isAuthenticated()) {
-			return res.redirect('/login');
-		}
-		next();
-	} catch(err) {
-		next(err);
-	}
-};
-
-const transporter = nodemailer.createTransport({
-	service: 'gmail',
-	auth: {
-		user: process.env.EMAIL_USER,
-		pass: process.env.EMAIL_PASS
-	}
-});
-
-const sendVerificationEmail = async (email, token) => {
-	const verificationUrl = `${process.env.BASE_URL}/api/verify-email/${token}`;
-	const mailOptions = {
-		from: process.env.EMAIL_USER,
-		to: email,
-		subject: 'Verify Your Email',
-		html: `
-		<h1> Verify Your Email </h1>
-		<p> Clicl on the link below to verify your email: </p>
-		<a href="${verificationUrl}"> Verify Here </a>
-		<p> This link will expire in 24 hours. </p>
-		`
-	};
-	await transporter.sendMail(mailOptions);
-};
 
 // passport stuff
 passport.use(new LocalStrategy(
@@ -128,7 +87,7 @@ passport.deserializeUser(async (id, done) => {
 		if(!user) {
 			return done(new Error('Invalid Credentials - Incorrect email or password'), null);
 		}
-		// there's user, deserualize it
+	// there's user, deserialize it
 		done(null, user);
 	} catch(err) {
 		done(err, null);
@@ -153,19 +112,24 @@ app.post('/signup', async (req, res, next) => {
 		if(password !== confirmPassword) {
 			return res.status(400).send('Bad Request - Password Mismatch');
 		}
-		const user = await User.findOne({ email });
+		if(password.length < 8) {
+			return res.status(400).send('Bad Request - Password must be at least 8 characters long');
+		}
+		// keep emails consistent so duplicates can't slip through by casing
+		const normalizedEmail = email.trim().toLowerCase();
+		const user = await User.findOne({ email: normalizedEmail });
 		if(user) {
 			return res.status(403).send('Email already exists, <a href="/login"> Login </a> to continue.');
 		}
 		// save it
 		const hashedPassword = await bcrypt.hash(password, 10);
-		const name2 = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+		const name2 = normalizeName(name);
 		const verificationToken = crypto.randomBytes(32).toString('hex');
 		const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 1day plus
 
 		const newUser = new User({
 			name: name2,
-			email,
+			email: normalizedEmail,
 			password: hashedPassword,
 			verificationToken,
 			verificationExpires
@@ -174,7 +138,7 @@ app.post('/signup', async (req, res, next) => {
 		await newUser.save();
 		res.status(201).send('Registration Successful. Please check your email to verify your account.');
 
-		sendVerificationEmail(email, verificationToken).catch((err) => {
+		sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
 			console.log('Failed to send verification email: ', err.message);
 		});
 		
@@ -198,7 +162,7 @@ app.get('/api/verify-email/:token', async (req, res, next) => {
 		// update the user infos
 		user.verificationToken = undefined; // remove from db
 		user.verificationExpires = undefined;
-		user.isVerified = true; // re-write the default false
+		user.isVerified = true; // overwrite the default false
 		user.verifiedAt = Date.now(); // mark the Date of verification
 		await user.save();
 
@@ -287,9 +251,14 @@ app.get('/logout', (req, res, next) => {
 	}
 });
 
+// health check
+app.get('/health', (req, res) => {
+	res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 app.use((req, res, next) => {
 	try {
-		res.status(404).send('Page Not Found');
+		res.status(404).send('Page Not Found - <a href="/login"> Back to Login </a>');
 	} catch(err) {
 		next(err);
 	}
@@ -304,6 +273,18 @@ app.use((err, req, res, next) => {
 	res.json({ error: err.stack });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
 	console.log(`Server listening on port ${port}...`);
 });
+
+// graceful shutdown
+const shutdown = (signal) => {
+	console.log(`${signal} received. Shutting down...`);
+	server.close(() => {
+		console.log('Server closed.');
+		process.exit(0);
+	});
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
